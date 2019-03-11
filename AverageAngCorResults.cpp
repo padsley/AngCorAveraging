@@ -40,7 +40,17 @@ int main(int argc, char *argv[])
     std::cout << "Read in all of the CHUCK3 and AngCor information" << std::endl;
     
     TFile *fout = new TFile(argv[3],"RECREATE");
-    TTree *trout = new TTree("AngCorData");
+    TTree *trout = new TTree("AngCorData","AngCorData");
+    
+    double ApertureX = 0, ApertureY = 0; //ApertureX is ThetaSCAT in K600 parlance (I think) but has been given a different name to avoid confusion - ApertureY should be PhiSCAT but this is annulled by the K600 focussing.
+    
+    double ThetaAlphaLab = 0, PhiAlphaLab = 0, ThetaDecayLab = 0;
+    
+    trout->Branch("ApertureX",&ApertureX);
+    trout->Branch("ApertureY",&ApertureY);
+    trout->Branch("ThetaAlphaLab",&ThetaAlphaLab);
+    trout->Branch("PhiAlphaLab",&PhiAlphaLab);
+    trout->Branch("ThetaDecayLab",&ThetaDecayLab);
     
     for(int i=0;i<NumberThetaAlphaPoints;i++)//Loop over the centre-of-mass theta angles
     {
@@ -57,20 +67,26 @@ int main(int argc, char *argv[])
             TLorentzVector *KinematicVectors = CalculateEjectileRecoilVectors(Masses, 200, Ex, ThetaAlphaCM, PhiAlphaCM);
             //KinematicVectors[0] is the kinematic vector for the ejectile
             //KinematicVectors[1] is the kinematic vector for the recoil
+            ThetaAlphaLab = KinematicVectors[0].Theta()*180./TMath::Pi();
+            PhiAlphaLab = KinematicVectors[0].Phi()*180./TMath::Pi();
+            
+            ApertureX = 180./TMath::Pi() * asin(sin(ThetaAlphaLab*TMath::Pi()/180.) * cos(PhiAlphaLab*TMath::Pi()/180.));
+            ApertureY = 180./TMath::Pi() * asin(sin(ThetaAlphaLab*TMath::Pi()/180.) * sin(PhiAlphaLab*TMath::Pi()/180.));
+            if(PhiAlphaLab>TMath::Pi())ApertureY *= -1;
             
             //Get the histogram for the 
             TH1F *hAngCor = MakeAngCorHistogram(AngCorTable, ThetaAlphaCM, PhiAlphaCM);
             
             if(KinematicVectors[0].Theta()<2.*TMath::Pi()/180.)
             {
-                
+                if(VerboseFlag)std::cout << KinematicVectors[0].Theta()*180./TMath::Pi() << "\t" << CrossSectionValue << std::endl;
                 for(int n=0;n<NumberMonteCarloEvents;n++)
                 {
                     //Get decay theta for the decay particle - this is according to the AngCor calculations table
                     double DecayTheta = hAngCor->GetRandom();
                     
                     //Get decay phi for the decay particle - in degrees
-                    double DecayPhi = randy->Rndm()* 360;
+                    double DecayPhi = randy->Rndm() * 360;
                     
                     //The kinematic behaviour of the recoil is described by KinematicVectors[1]
                     double BetaRecoil = KinematicVectors[1].Beta();
@@ -85,7 +101,12 @@ int main(int argc, char *argv[])
                     
                     //Store the results - probably in a histogram
                     AngularCorrelationHistogram->Fill(KinematicVectorsDecay[0].Theta()*180./TMath::Pi(),CrossSectionValue*sin(ThetaAlphaCM*TMath::Pi()/180.));
+                    
+                    ThetaDecayLab = KinematicVectorsDecay[0].Theta()*180./TMath::Pi();
+                    
                     delete [] KinematicVectorsDecay;
+                    
+                    trout->Fill();
                 }
             }
             delete [] KinematicVectors;
