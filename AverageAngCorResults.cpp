@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
             
             ApertureX = 180./TMath::Pi() * asin(sin(ThetaAlphaLab*TMath::Pi()/180.) * cos(PhiAlphaLab*TMath::Pi()/180.));
             ApertureY = 180./TMath::Pi() * asin(sin(ThetaAlphaLab*TMath::Pi()/180.) * sin(PhiAlphaLab*TMath::Pi()/180.));
-            if(PhiAlphaLab>TMath::Pi())ApertureY *= -1;
+            
             
             //Get the histogram for the 
             TH1F *hAngCor = MakeAngCorHistogram(AngCorTable, ThetaAlphaCM, PhiAlphaCM);
@@ -95,9 +95,6 @@ int main(int argc, char *argv[])
                     //Calculate the decay particle and the residual particle's 4-momenta - these are in the LAB frame!!!!
                     if(Masses[3] != Masses[1]&& VerboseFlag)std::cout << "Masses[3] was permanently changed in the first kinematics loop: " << Masses[1] << "\t" << Masses[3] << "\t" << Ex << std::endl;
                     TLorentzVector *KinematicVectorsDecay = CalculateDecayResidualVectors(Masses,Ex,KinematicVectors[1],DecayTheta,DecayPhi);
-                    
-                    //Test the kinematics to ensure that it's all working
-//                     TestKinematics(Masses, 200, Ex, KinematicVectors, KinematicVectorsDecay);
                     
                     //Store the results - probably in a histogram
                     AngularCorrelationHistogram->Fill(KinematicVectorsDecay[0].Theta()*180./TMath::Pi(),CrossSectionValue*sin(ThetaAlphaCM*TMath::Pi()/180.));
