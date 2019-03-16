@@ -2,7 +2,8 @@
 
 double *ReadCrossSectionTable(char InputFileName);
 
-bool VerboseFlag = false;
+bool VerboseFlag = true;
+// bool VerboseFlag = false;
 
 //usage AverageAngCorResults CHUCK3CrossSectionFilePath PathToAngCorOutputFile
 
@@ -69,12 +70,26 @@ int main(int argc, char *argv[])
             //KinematicVectors[1] is the kinematic vector for the recoil
             ThetaAlphaLab = KinematicVectors[0].Theta()*180./TMath::Pi();
             PhiAlphaLab = KinematicVectors[0].Phi()*180./TMath::Pi();
-            
+            if(PhiAlphaLab<0)
+            {
+                if(VerboseFlag)std::cout << "PhiAlphaLab<0 - " << PhiAlphaLab << std::endl;
+                PhiAlphaLab+=360.;
+                if(VerboseFlag)std::cout << "PhiAlphaLab now " << PhiAlphaLab << std::endl;
+            }
+                        
             ApertureX = 180./TMath::Pi() * asin(sin(ThetaAlphaLab*TMath::Pi()/180.) * cos(PhiAlphaLab*TMath::Pi()/180.));
             ApertureY = 180./TMath::Pi() * asin(sin(ThetaAlphaLab*TMath::Pi()/180.) * sin(PhiAlphaLab*TMath::Pi()/180.));
-            
-            
-            //Get the histogram for the 
+        
+            if(VerboseFlag)
+            {
+                std::cout << "ApertureX: " << ApertureX << std::endl;
+                std::cout << "ApertureY: " << ApertureY << std::endl;
+                std::cout << "sin(ThetaAlphaLab*TMath::Pi()/180.) * cos(PhiAlphaLab*TMath::Pi()/180.): " << sin(ThetaAlphaLab*TMath::Pi()/180.) * cos(PhiAlphaLab*TMath::Pi()/180.) << std::endl;
+                std::cout << "sin(ThetaAlphaLab*TMath::Pi()/180.) * sin(PhiAlphaLab*TMath::Pi()/180.): " << sin(ThetaAlphaLab*TMath::Pi()/180.) * sin(PhiAlphaLab*TMath::Pi()/180.) << std::endl;
+            }
+                
+                
+            //Get the histogram for the AngCor region which is important
             TH1F *hAngCor = MakeAngCorHistogram(AngCorTable, ThetaAlphaCM, PhiAlphaCM);
             
             if(KinematicVectors[0].Theta()<2.*TMath::Pi()/180.)

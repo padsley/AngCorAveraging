@@ -9,10 +9,10 @@
 #include <TTree.h>
 
 int NumberThetaAlphaPoints = 40;
-int NumberPhiAlphaPoints = 180;
+int NumberPhiAlphaPoints = 360;
 int NumberThetaDecayPoints = 180;
 int NumberOfCHUCK3Angles = 100;
-int NumberMonteCarloEvents = 5000;
+int NumberMonteCarloEvents = 50;
 
 float DeltaThetaAlpha = 0.1; //Size of the ThetaAlpha steps
 
