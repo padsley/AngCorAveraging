@@ -2,8 +2,8 @@
 
 double *ReadCrossSectionTable(char InputFileName);
 
-bool VerboseFlag = true;
-// bool VerboseFlag = false;
+// bool VerboseFlag = true;
+bool VerboseFlag = false;
 
 //usage AverageAngCorResults CHUCK3CrossSectionFilePath PathToAngCorOutputFile
 
@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
                     TVector3 Lab3MomentumRecoil = KinematicVectors[1].Vect();
                     
                     //Calculate the decay particle and the residual particle's 4-momenta - these are in the LAB frame!!!!
-                    if(Masses[3] != Masses[1]&& VerboseFlag)std::cout << "Masses[3] was permanently changed in the first kinematics loop: " << Masses[1] << "\t" << Masses[3] << "\t" << Ex << std::endl;
+                    if(Masses[3] != Masses[1] && VerboseFlag)std::cout << "Masses[3] was permanently changed in the first kinematics loop: " << Masses[1] << "\t" << Masses[3] << "\t" << Ex << std::endl;
                     TLorentzVector *KinematicVectorsDecay = CalculateDecayResidualVectors(Masses,Ex,KinematicVectors[1],DecayTheta,DecayPhi);
                     
                     //Store the results - probably in a histogram
@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
     delete CrossSectionTable;//These aren't actually the right way of doing it. Baaaah.
     delete AngCorTable;
     
-    
+    trout->Write();
     AngularCorrelationHistogram->Write();
     fout->Close();
     
@@ -249,17 +249,26 @@ double CrossSectionCalculation(double **CrossSectionTable, double ThetaAlpha)
 
 TH1F* MakeAngCorHistogram(double ***AngCorTable, double ThetaCM, double PhiAlphaCM)
 {
+    if(PhiAlphaCM<0)PhiAlphaCM+=360.;
     TH1F *result = new TH1F("hResult","",181,0,181);
     if(VerboseFlag)std::cout << "hResult Bin Width: " << result->GetBinWidth(1) << std::endl;
     
     for(int i=0;i<=NumberThetaDecayPoints;i++)
     {
         if(VerboseFlag)std::cout << "i: " << i << "\t (int)round(ThetaCM/DeltaThetaAlpha): " << (int)round(ThetaCM/DeltaThetaAlpha) << "\t(int)PhiAlphaCM: " << (int)PhiAlphaCM << std::endl;
-        result->SetBinContent(i+1,AngCorTable[(int)round(ThetaCM/DeltaThetaAlpha)][(int)PhiAlphaCM][i]);   
+        int PhiIndex = (int)PhiAlphaCM - 180;
+        if(PhiIndex<0)PhiIndex *= -1;
+        result->SetBinContent(i+1,AngCorTable[(int)round(ThetaCM/DeltaThetaAlpha)][PhiIndex][i]);
+        if(VerboseFlag)
+        {
+            std::cout << AngCorTable[(int)round(ThetaCM/DeltaThetaAlpha)][PhiIndex][i] << std::endl;
+            std::cout << (int)round(ThetaCM/DeltaThetaAlpha) << "\t" << PhiIndex << std::endl;
+            std::cout << PhiAlphaCM << std::endl;
+        }
     }
     
-    char buffer[256];
-    sprintf(buffer,"figures/hAngCor%d_%d.root",(int)round(ThetaCM/DeltaThetaAlpha),(int)PhiAlphaCM);
+//     char buffer[256];
+//     sprintf(buffer,"figures/hAngCor%d_%d.root",(int)round(ThetaCM/DeltaThetaAlpha),(int)PhiAlphaCM);
 //     result->SaveAs(buffer);
     
     return result;

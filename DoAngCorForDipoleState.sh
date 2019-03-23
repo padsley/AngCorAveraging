@@ -2,8 +2,12 @@
 
 #This code runs the AngCor calculations from start to finish for the dipole state
 
-#CHUCK3 calculations
+rm /home/padsley/codes/AngCor/AngCorNew/AngCorNew/angcor/fort.2
 
+#CHUCK3 calculations
+cd /home/padsley/codes/AngCor/AngCorNew/AngCorNew/chuck3
+./chuck < input/24Mg_alphaInelastic_1-.com > output/24Mg_alphaInelastic_1-.out
+cp fort.2 /home/padsley/codes/AngCor/AngCorNew/AngCorNew/angcor/fort.2
 
 #AngCor inputs generation
 cd /home/padsley/codes/AngCor/AngCorNew/AngCorNew/angcor/input
@@ -17,8 +21,9 @@ g++ make_input_PR244_J_1.c -o make_input_PR244_J_1
 #Creation of the combined AngCor file
 cd ../output
 ./make_final.sh
+mv final.dat finalDipole.dat
 
 #Monte Carlo for the dipole state
 cd /home/padsley/codes/AngCor/AngCorNew/AngCorNew/Averaging
 g++ AverageAngCorResults.cpp -o AverageAngCorResults `root-config --cflags --libs` -O3
-./AverageAngCorResults ../chuck3/output/24Mg_alphaInelastic_1-.out ../angcor/output/final.dat DipoleStateAngcorOutput.root
+./AverageAngCorResults ../chuck3/output/24Mg_alphaInelastic_1-.out ../angcor/output/finalDipole.dat DipoleStateAngcorOutput.root
