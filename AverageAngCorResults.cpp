@@ -9,7 +9,24 @@ bool VerboseFlag = false;
 
 int main(int argc, char *argv[])
 {
+    TCanvas *c1 = new TCanvas("c1","",800,800);
     TH1F *AngularCorrelationHistogram = new TH1F("AngularCorrelationHistogram","",181,0,180);
+    TH1F *AngularCorrelationNormalisation = new TH1F("AngularCorrelationNormalisation","",181,0,180);
+    
+    TH1F **AngularCorrelationHistogramPerAngle = new TH1F*[NumberThetaAlphaPoints];
+    
+    for(int i=0;i<NumberThetaAlphaPoints;i++)
+        AngularCorrelationHistogramPerAngle[i] = new TH1F(Form("AngularCorrelationHistogramPerAngle%d",i),"",181,0,180);
+    
+    TH1F ***AngularCorrelationHistogramPerAnglePerAngle = new TH1F**[NumberThetaAlphaPoints];
+    for(int i=0;i<NumberThetaAlphaPoints;i++)
+    {
+        AngularCorrelationHistogramPerAnglePerAngle[i] = new TH1F*[NumberPhiDecayPoints];
+        for(int k=0;k<NumberPhiDecayPoints;k++)
+        {
+            AngularCorrelationHistogramPerAnglePerAngle[i][k] = new TH1F(Form("AngularCorrelationHistogramPerAnglePerAngle%d_%d",i,k),"",181,0,180);
+        }
+    }
     
     if(argc!=4) 
     {
@@ -30,7 +47,7 @@ int main(int argc, char *argv[])
     
     TRandom3 *randy = new TRandom3(0);
     
-//     TLorentzVector *KinematicVectors, *KinematicVectorsDecay;
+    //     TLorentzVector *KinematicVectors, *KinematicVectorsDecay;
     
     //Read in CHUCK3 differential cross sections
     double **CrossSectionTable = ReadCrossSectionTable(argv[1]);
@@ -45,92 +62,73 @@ int main(int argc, char *argv[])
     
     double ApertureX = 0, ApertureY = 0; //ApertureX is ThetaSCAT in K600 parlance (I think) but has been given a different name to avoid confusion - ApertureY should be PhiSCAT but this is annulled by the K600 focussing.
     
-    double ThetaAlphaLab = 0, PhiAlphaLab = 0, ThetaDecayLab = 0;
+    double ThetaAlphaLab = 0, PhiAlphaLab = 0, ThetaDecayLab = 0, ThetaDecayCM = 0, PhiDecayCM = 0, Weight = 0, PhiDecayLab = 0;
     
     trout->Branch("ApertureX",&ApertureX);
     trout->Branch("ApertureY",&ApertureY);
     trout->Branch("ThetaAlphaLab",&ThetaAlphaLab);
     trout->Branch("PhiAlphaLab",&PhiAlphaLab);
-    trout->Branch("ThetaDecayLab",&ThetaDecayLab);
+    trout->Branch("PhiDecayLab",&PhiDecayLab);
+    trout->Branch("ThetaDecayCM",&ThetaDecayCM);
+    trout->Branch("PhiDecayCM",&PhiDecayCM);
+    trout->Branch("Weight",&Weight);
     
-    for(int i=0;i<NumberThetaAlphaPoints;i++)//Loop over the centre-of-mass theta angles
+    TGraph *gCrossSection = new TGraph();
+    gCrossSection->SetName("gCrossSection");
+    
+    for(int i=1;i<NumberThetaAlphaPoints;i++)//Loop over the centre-of-mass theta angles
     {
         double ThetaAlphaCM = CalculateThetaAlpha(i);
         if(VerboseFlag)std::cout << "ThetaAlphaCM: " << ThetaAlphaCM << std::endl;
         
-        double CrossSectionValue = CrossSectionCalculation(CrossSectionTable, ThetaAlphaCM);
-        if(VerboseFlag)std::cout << "CrossSectionValue: " << CrossSectionValue << std::endl;
-        for(int j=0;j<NumberPhiAlphaPoints;j++)//Loop over the centre-of-mass phi angles
-        {
-            double PhiAlphaCM = (double)j;
-            
-            //Get the Boost TVector3 for the recoil in the lab frame
-            TLorentzVector *KinematicVectors = CalculateEjectileRecoilVectors(Masses, 200, Ex, ThetaAlphaCM, PhiAlphaCM);
-            //KinematicVectors[0] is the kinematic vector for the ejectile
-            //KinematicVectors[1] is the kinematic vector for the recoil
-            ThetaAlphaLab = KinematicVectors[0].Theta()*180./TMath::Pi();
-            PhiAlphaLab = KinematicVectors[0].Phi()*180./TMath::Pi();
-            if(PhiAlphaLab<0)
-            {
-                if(VerboseFlag)std::cout << "PhiAlphaLab<0 - " << PhiAlphaLab << std::endl;
-                PhiAlphaLab+=360.;
-                if(VerboseFlag)std::cout << "PhiAlphaLab now " << PhiAlphaLab << std::endl;
-            }
-                        
-            ApertureX = 180./TMath::Pi() * asin(sin(ThetaAlphaLab*TMath::Pi()/180.) * cos(PhiAlphaLab*TMath::Pi()/180.));
-            ApertureY = 180./TMath::Pi() * asin(sin(ThetaAlphaLab*TMath::Pi()/180.) * sin(PhiAlphaLab*TMath::Pi()/180.));
+        TLorentzVector *KinematicVectors = CalculateEjectileRecoilVectors(Masses, 200, Ex, ThetaAlphaCM, 0);
+        ThetaAlphaLab = KinematicVectors[0].Theta()*180./TMath::Pi();
         
-            if(VerboseFlag)
-            {
-                std::cout << "ApertureX: " << ApertureX << std::endl;
-                std::cout << "ApertureY: " << ApertureY << std::endl;
-                std::cout << "sin(ThetaAlphaLab*TMath::Pi()/180.) * cos(PhiAlphaLab*TMath::Pi()/180.): " << sin(ThetaAlphaLab*TMath::Pi()/180.) * cos(PhiAlphaLab*TMath::Pi()/180.) << std::endl;
-                std::cout << "sin(ThetaAlphaLab*TMath::Pi()/180.) * sin(PhiAlphaLab*TMath::Pi()/180.): " << sin(ThetaAlphaLab*TMath::Pi()/180.) * sin(PhiAlphaLab*TMath::Pi()/180.) << std::endl;
-            }
-                
-                
-            //Get the histogram for the AngCor region which is important
-            TH1F *hAngCor = MakeAngCorHistogram(AngCorTable, ThetaAlphaCM, PhiAlphaCM);
+        if(ThetaAlphaLab<2.)
+        {
             
-            if(KinematicVectors[0].Theta()<2.*TMath::Pi()/180.)
+            double CrossSectionValue = CrossSectionCalculation(CrossSectionTable, ThetaAlphaCM);
+            if(VerboseFlag)std::cout << "CrossSectionValue: " << CrossSectionValue << std::endl;
+            gCrossSection->SetPoint(i-1,ThetaAlphaCM,CrossSectionValue);
+            
+            //Loop over the number of theta decay points
+            for(int j=0;j<NumberThetaDecayPoints;j++)
             {
-                if(VerboseFlag)std::cout << KinematicVectors[0].Theta()*180./TMath::Pi() << "\t" << CrossSectionValue << std::endl;
-                for(int n=0;n<NumberMonteCarloEvents;n++)
+                for(int k=0;k<NumberPhiDecayPoints;k++)
                 {
-                    //Get decay theta for the decay particle - this is according to the AngCor calculations table
-                    double DecayTheta = hAngCor->GetRandom();
-                    
-                    //Get decay phi for the decay particle - in degrees
-                    double DecayPhi = randy->Rndm() * 360;
-                    
-                    //The kinematic behaviour of the recoil is described by KinematicVectors[1]
-                    double BetaRecoil = KinematicVectors[1].Beta();
-                    TVector3 Lab3MomentumRecoil = KinematicVectors[1].Vect();
-                    
-                    //Calculate the decay particle and the residual particle's 4-momenta - these are in the LAB frame!!!!
-                    if(Masses[3] != Masses[1] && VerboseFlag)std::cout << "Masses[3] was permanently changed in the first kinematics loop: " << Masses[1] << "\t" << Masses[3] << "\t" << Ex << std::endl;
-                    TLorentzVector *KinematicVectorsDecay = CalculateDecayResidualVectors(Masses,Ex,KinematicVectors[1],DecayTheta,DecayPhi);
-                    
-                    //Store the results - probably in a histogram
-                    AngularCorrelationHistogram->Fill(KinematicVectorsDecay[0].Theta()*180./TMath::Pi(),CrossSectionValue*sin(ThetaAlphaCM*TMath::Pi()/180.));
-                    
-                    ThetaDecayLab = KinematicVectorsDecay[0].Theta()*180./TMath::Pi();
-                    
-                    delete [] KinematicVectorsDecay;
-                    
-                    trout->Fill();
+                    for(int l=0;l<180;l++)//Loop over phi alpha
+                    {
+                        AngularCorrelationHistogram->Fill(j,AngCorTable[i][j][k]*CrossSectionValue);
+                        AngularCorrelationHistogramPerAngle[i]->Fill(j,AngCorTable[i][j][k]);
+                        AngularCorrelationHistogramPerAnglePerAngle[i][k]->Fill(j,AngCorTable[i][j][k]);
+                        AngularCorrelationNormalisation->Fill(j);
+                        
+                        PhiAlphaLab = (double)l;
+                        Weight = AngCorTable[i][j][k]*CrossSectionValue;
+                        ThetaDecayCM = (double)j;
+                        PhiDecayCM = (double)k;
+                        
+                        PhiDecayLab = PhiAlphaLab + PhiDecayCM;
+                        if(PhiDecayLab>360)PhiDecayLab -= 360;
+                    }
                 }
+                
             }
-            delete [] KinematicVectors;
-            delete hAngCor;
-            
-        }
+        }  
+        delete [] KinematicVectors;
     }
+    
     delete CrossSectionTable;//These aren't actually the right way of doing it. Baaaah.
     delete AngCorTable;
     
     trout->Write();
     AngularCorrelationHistogram->Write();
+    AngularCorrelationNormalisation->Write();
+    for(int i=0;i<NumberThetaAlphaPoints;i++)AngularCorrelationHistogramPerAngle[i]->Write();
+    for(int i=0;i<NumberThetaAlphaPoints;i++)
+        for(int k=0;k<NumberPhiDecayPoints;k++)
+            AngularCorrelationHistogramPerAnglePerAngle[i][k]->Write();
+    gCrossSection->Write();
     fout->Close();
     
     return 0;
@@ -205,11 +203,11 @@ double*** ReadAngCorTable(char *InputFileName)
     double*** result = new double**[NumberThetaAlphaPoints];
     for(int i=0;i<NumberThetaAlphaPoints;i++)
     {
-        result[i] = new double*[NumberPhiAlphaPoints+1];
-        for(int j=0;j<=NumberPhiAlphaPoints;j++)
+        result[i] = new double*[NumberThetaDecayPoints+1];
+        for(int j=0;j<=NumberThetaDecayPoints;j++)
         {
-            result[i][j] = new double[NumberThetaDecayPoints+1];
-            for(int k=0;k<=NumberThetaDecayPoints;k++)
+            result[i][j] = new double[NumberPhiDecayPoints+1];
+            for(int k=0;k<=NumberPhiDecayPoints;k++)
             {
                 result[i][j][k] = 0;
             }
@@ -247,29 +245,51 @@ double CrossSectionCalculation(double **CrossSectionTable, double ThetaAlpha)
     return result;
 }
 
-TH1F* MakeAngCorHistogram(double ***AngCorTable, double ThetaCM, double PhiAlphaCM)
+TH2F* MakeAngCorHistogram(double ***AngCorTable, double ThetaCM)
 {
-    if(PhiAlphaCM<0)PhiAlphaCM+=360.;
-    TH1F *result = new TH1F("hResult","",181,0,181);
-    if(VerboseFlag)std::cout << "hResult Bin Width: " << result->GetBinWidth(1) << std::endl;
+    TH2F *result = new TH2F("hResult","",181,0,181,181,0,181);
     
     for(int i=0;i<=NumberThetaDecayPoints;i++)
     {
-        if(VerboseFlag)std::cout << "i: " << i << "\t (int)round(ThetaCM/DeltaThetaAlpha): " << (int)round(ThetaCM/DeltaThetaAlpha) << "\t(int)PhiAlphaCM: " << (int)PhiAlphaCM << std::endl;
-        int PhiIndex = (int)PhiAlphaCM - 180;
-        if(PhiIndex<0)PhiIndex *= -1;
-        result->SetBinContent(i+1,AngCorTable[(int)round(ThetaCM/DeltaThetaAlpha)][PhiIndex][i]);
-        if(VerboseFlag)
+        if(VerboseFlag)std::cout << "i: " << i << "\t (int)round(ThetaCM/DeltaThetaAlpha): " << (int)round(ThetaCM/DeltaThetaAlpha) << std::endl;
+        for(int j=0;j<=NumberPhiDecayPoints;j++)
         {
-            std::cout << AngCorTable[(int)round(ThetaCM/DeltaThetaAlpha)][PhiIndex][i] << std::endl;
-            std::cout << (int)round(ThetaCM/DeltaThetaAlpha) << "\t" << PhiIndex << std::endl;
-            std::cout << PhiAlphaCM << std::endl;
+            result->SetBinContent(i+1,j+1,AngCorTable[(int)round(ThetaCM/DeltaThetaAlpha)][i][j]);
+            if(VerboseFlag)
+            {
+                std::cout << AngCorTable[(int)round(ThetaCM/DeltaThetaAlpha)][i][j] << std::endl;
+                std::cout << (int)round(ThetaCM/DeltaThetaAlpha) << "\t" << i << std::endl;
+                std::cout << j << std::endl;
+            }
         }
     }
+    return result;
+}
+
+TVector3 CollisionalCoMBoost(double *Masses, double TBeam)
+{
+    TVector3 result(0,0,1);
     
-//     char buffer[256];
-//     sprintf(buffer,"figures/hAngCor%d_%d.root",(int)round(ThetaCM/DeltaThetaAlpha),(int)PhiAlphaCM);
-//     result->SaveAs(buffer);
+    double s = pow(Masses[0],2.) + pow(Masses[1],2.) + 2 * Masses[1] * (TBeam + Masses[0]);
+    
+    TLorentzVector f4MomentumCentreOfMass(0,0,0,sqrt(s));
+    
+    double ECM0 = (s + pow(Masses[0],2.) - pow(Masses[1],2.))/(2*sqrt(s));
+    double ECM1 = (s + pow(Masses[1],2.) - pow(Masses[0],2.))/(2*sqrt(s));
+    
+    double PCM0 = sqrt(pow(ECM0,2.) - pow(Masses[0],2.));
+    double PCM1 = sqrt(pow(ECM1,2.) - pow(Masses[1],2.));
+    
+    TVector3 Lab3Momentum0(0,0,sqrt(pow(TBeam,2.) + 2 * TBeam * Masses[0]));
+    TVector3 Lab3Momentum1(0,0,0);
+    
+    TLorentzVector Lab4Momentum0(Lab3Momentum0,Masses[0] + TBeam);
+    TLorentzVector Lab4Momentum1(Lab3Momentum1,Masses[1]);
+    
+    double BetaCM = (Lab4Momentum0+Lab4Momentum1).Beta();
+    //     std::cout << "BetaCM2 = " << BetaCM << std::endl;
+    
+    result.SetMag(BetaCM);
     
     return result;
 }
@@ -302,6 +322,7 @@ TLorentzVector* CalculateEjectileRecoilVectors(double *Masses, double TBeam, dou
     TLorentzVector Lab4Momentum1(Lab3Momentum1,Masses[1]);
     
     double BetaCM = (Lab4Momentum0+Lab4Momentum1).Beta();
+    //     std::cout << "BetaCM = " << BetaCM << std::endl;
     
     TLorentzVector CoM4Momentum0 = Lab4Momentum0;
     CoM4Momentum0.Boost(TVector3(0,0,-BetaCM));
@@ -358,6 +379,8 @@ TLorentzVector* CalculateDecayResidualVectors(double *Masses, double Ex, TLorent
     double PCM_Decay = sqrt(pow(ECM_Decay,2.) - pow(Masses[4],2.));
     double PCM_Residual = sqrt(pow(ECM_Residual,2.) - pow(Masses[5],2.));
     
+    //     if(PCM_Decay != PCM_Residual)std::cout << "Decay momenta are mismatched: \t" << PCM_Decay << "\t" << PCM_Residual << std::endl;
+    
     if(VerboseFlag)
     {
         std::cout << "ECM_Decay: " << ECM_Decay << std::endl;
@@ -387,10 +410,10 @@ TLorentzVector* CalculateDecayResidualVectors(double *Masses, double Ex, TLorent
     if(VerboseFlag)std::cout << "Recoil4Vector.Beta(): " << Recoil4Vector.Beta() << std::endl;
     if(VerboseFlag)Recoil4Vector.BoostVector().Print();
     
-    TVector3 Recoil3Momentum = Recoil4Vector.Vect();
+    //     TVector3 Recoil3Momentum = Recoil4Vector.Vect();
     
-    Lab4MomentumDecay.Boost(Recoil4Vector.BoostVector());
-    Lab4MomentumResidual.Boost(Recoil4Vector.BoostVector());
+    //     Lab4MomentumDecay.Boost(Recoil4Vector.BoostVector());
+    //     Lab4MomentumResidual.Boost(Recoil4Vector.BoostVector());
     
     result[0] = Lab4MomentumDecay;
     result[1] = Lab4MomentumResidual;

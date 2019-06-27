@@ -5,14 +5,18 @@
 #include <TRandom3.h>
 #include <string>
 #include <TH1.h>
+#include <TH2.h>
 #include <TFile.h>
 #include <TTree.h>
+#include <TCanvas.h>
+#include <TGraph.h>
 
 int NumberThetaAlphaPoints = 40;
 int NumberPhiAlphaPoints = 360;
 int NumberThetaDecayPoints = 180;
+int NumberPhiDecayPoints = 180;
 int NumberOfCHUCK3Angles = 100;
-int NumberMonteCarloEvents = 50;
+int NumberMonteCarloEvents = 100;
 
 float DeltaThetaAlpha = 0.1; //Size of the ThetaAlpha steps
 
@@ -23,6 +27,8 @@ double CrossSectionCalculation(double **CrossSectionTable, double ThetaAlpha);
 double CalculateThetaAlpha(int Iteration){return DeltaThetaAlpha * Iteration;}
 TLorentzVector* CalculateEjectileRecoilVectors(double *Masses, double TBeam, double Ex, double ThetaAlphaCM, double PhiAlphaCM);
 double*** ReadAngCorTable(char *InputFileName);
-TH1F* MakeAngCorHistogram(double ***AngCorTable, double ThetaCM, double PhiAlphaCM);
+TH2F* MakeAngCorHistogram(double ***AngCorTable, double ThetaCM);
 TLorentzVector* CalculateDecayResidualVectors(double *Masses, double Ex,TLorentzVector Recoil4Vector,double DecayTheta,double DecayPhi);
 bool TestKinematics(double *Masses, double TBeam, double Ex, TLorentzVector* KinematicVectors, TLorentzVector* KinematicVectorsDecay);
+
+TVector3 CollisionalCoMBoost(double *Masses, double TBeam);

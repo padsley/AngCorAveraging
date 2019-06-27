@@ -2,12 +2,12 @@
 
 #This code runs the AngCor calculations from start to finish for the dipole state
 
-rm /home/padsley/codes/AngCor/AngCorNew/AngCorNew/angcor/fort.2
+rm /home/padsley/codes/AngCor/AngCorNew/AngCorNew/angcor/input/fort.2
 
 #CHUCK3 calculations
 cd /home/padsley/codes/AngCor/AngCorNew/AngCorNew/chuck3
 ./chuck < input/24Mg_alphaInelastic_1-.com > output/24Mg_alphaInelastic_1-.out
-cp fort.2 /home/padsley/codes/AngCor/AngCorNew/AngCorNew/angcor/fort.2
+cp -f fort.2 /home/padsley/codes/AngCor/AngCorNew/AngCorNew/angcor/input/fort.2
 
 #AngCor inputs generation
 cd /home/padsley/codes/AngCor/AngCorNew/AngCorNew/angcor/input
