@@ -62,29 +62,30 @@ int main(int argc, char *argv[])
     
     double ApertureX = 0, ApertureY = 0; //ApertureX is ThetaSCAT in K600 parlance (I think) but has been given a different name to avoid confusion - ApertureY should be PhiSCAT but this is annulled by the K600 focussing.
     
-    double ThetaAlphaLab = 0, PhiAlphaLab = 0, ThetaDecayLab = 0, ThetaDecayCM = 0, PhiDecayCM = 0, Weight = 0, PhiDecayLab = 0;
+    double ThetaAlphaLab = 0, PhiAlphaLab = 0, ThetaDecayLab = 0, ThetaDecayCM = 0, PhiDecayCM = 0, Weight = 0, PhiDecayLab = 0, ThetaAlphaCM = 0, PhiAlphaCM = 0;
     
     trout->Branch("ApertureX",&ApertureX);
     trout->Branch("ApertureY",&ApertureY);
+    trout->Branch("ThetaAlphaCM",&ThetaAlphaCM);
     trout->Branch("ThetaAlphaLab",&ThetaAlphaLab);
-    trout->Branch("PhiAlphaLab",&PhiAlphaLab);
-    trout->Branch("PhiDecayLab",&PhiDecayLab);
-    trout->Branch("ThetaDecayCM",&ThetaDecayCM);
-    trout->Branch("PhiDecayCM",&PhiDecayCM);
-    trout->Branch("Weight",&Weight);
+    trout->Branch("PhiAlphaLab",&PhiAlphaLab);//
+    trout->Branch("PhiDecayLab",&PhiDecayLab);//
+    trout->Branch("ThetaDecayCM",&ThetaDecayCM);//
+    trout->Branch("PhiDecayCM",&PhiDecayCM);//
+    trout->Branch("Weight",&Weight);//
     
     TGraph *gCrossSection = new TGraph();
     gCrossSection->SetName("gCrossSection");
     
     for(int i=1;i<NumberThetaAlphaPoints;i++)//Loop over the centre-of-mass theta angles
     {
-        double ThetaAlphaCM = CalculateThetaAlpha(i);
+        ThetaAlphaCM = CalculateThetaAlpha(i);
         if(VerboseFlag)std::cout << "ThetaAlphaCM: " << ThetaAlphaCM << std::endl;
         
         TLorentzVector *KinematicVectors = CalculateEjectileRecoilVectors(Masses, 200, Ex, ThetaAlphaCM, 0);
         ThetaAlphaLab = KinematicVectors[0].Theta()*180./TMath::Pi();
         
-        if(ThetaAlphaLab<2.)
+//         if(ThetaAlphaLab<2.)
         {
             
             double CrossSectionValue = CrossSectionCalculation(CrossSectionTable, ThetaAlphaCM);
@@ -96,20 +97,25 @@ int main(int argc, char *argv[])
             {
                 for(int k=0;k<NumberPhiDecayPoints;k++)
                 {
-                    for(int l=0;l<180;l++)//Loop over phi alpha
+                    for(int l=0;l<360;l++)//Loop over phi alpha
                     {
-                        AngularCorrelationHistogram->Fill(j,AngCorTable[i][j][k]*CrossSectionValue);
-                        AngularCorrelationHistogramPerAngle[i]->Fill(j,AngCorTable[i][j][k]);
-                        AngularCorrelationHistogramPerAnglePerAngle[i][k]->Fill(j,AngCorTable[i][j][k]);
-                        AngularCorrelationNormalisation->Fill(j);
+                        if(ThetaAlphaLab<2.)AngularCorrelationHistogram->Fill(j,AngCorTable[i][j][k]*CrossSectionValue);
+                        if(ThetaAlphaLab<2.)AngularCorrelationHistogramPerAngle[i]->Fill(j,AngCorTable[i][j][k]);
+                        if(ThetaAlphaLab<2.)AngularCorrelationHistogramPerAnglePerAngle[i][k]->Fill(j,AngCorTable[i][j][k]);
+                        if(ThetaAlphaLab<2.)AngularCorrelationNormalisation->Fill(j);
                         
                         PhiAlphaLab = (double)l;
                         Weight = AngCorTable[i][j][k]*CrossSectionValue;
                         ThetaDecayCM = (double)j;
                         PhiDecayCM = (double)k;
-                        
+                                                
                         PhiDecayLab = PhiAlphaLab + PhiDecayCM;
                         if(PhiDecayLab>360)PhiDecayLab -= 360;
+                        
+                        ApertureX = ThetaAlphaLab * cos(PhiAlphaLab*TMath::Pi()/180.);
+                        ApertureY = ThetaAlphaLab * sin(PhiAlphaLab*TMath::Pi()/180.);;
+                        
+                        trout->Fill();
                     }
                 }
                 
@@ -121,13 +127,26 @@ int main(int argc, char *argv[])
     delete CrossSectionTable;//These aren't actually the right way of doing it. Baaaah.
     delete AngCorTable;
     
+    //Normalise the W(theta) functions - divide AngularCorrelationHistogram by AngularCorrelationNormalisation per bin
+    for(int i=0;i<AngularCorrelationHistogram->GetNbinsX();i++)
+    {
+        if(AngularCorrelationHistogram->GetBinContent(i)>0 && AngularCorrelationNormalisation->GetBinContent(i)>0)
+        {
+            AngularCorrelationHistogram->SetBinContent(i,AngularCorrelationHistogram->GetBinContent(i)/AngularCorrelationNormalisation->GetBinContent(i));
+        }
+        else
+        {
+            AngularCorrelationHistogram->SetBinContent(i,0);
+        }
+    }
+    
     trout->Write();
     AngularCorrelationHistogram->Write();
     AngularCorrelationNormalisation->Write();
-    for(int i=0;i<NumberThetaAlphaPoints;i++)AngularCorrelationHistogramPerAngle[i]->Write();
-    for(int i=0;i<NumberThetaAlphaPoints;i++)
-        for(int k=0;k<NumberPhiDecayPoints;k++)
-            AngularCorrelationHistogramPerAnglePerAngle[i][k]->Write();
+//     for(int i=0;i<NumberThetaAlphaPoints;i++)AngularCorrelationHistogramPerAngle[i]->Write();
+//     for(int i=0;i<NumberThetaAlphaPoints;i++)
+//         for(int k=0;k<NumberPhiDecayPoints;k++)
+//             AngularCorrelationHistogramPerAnglePerAngle[i][k]->Write();
     gCrossSection->Write();
     fout->Close();
     
