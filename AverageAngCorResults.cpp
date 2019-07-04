@@ -260,7 +260,13 @@ double CrossSectionCalculation(double **CrossSectionTable, double ThetaAlpha)
     
     if(VerboseFlag)std::cout << "Cross section value: " << result << std::endl;
     
-    if(result==0)std::cout << "Not found a good cross section" << std::endl;
+    if(result==0)
+    {
+        std::cout << "Not found a good cross section" << std::endl;
+        std::cout << "ThetaAlpha = " << ThetaAlpha << std::endl;
+        std::cout << "CrossSection index: " << (int)(ThetaAlpha/DeltaThetaAlpha) << std::endl;
+        std::cout << "CrossSectionTable value: " << CrossSectionTable[(int)(ThetaAlpha/DeltaThetaAlpha)][1] << std::endl;
+    }
     return result;
 }
 
