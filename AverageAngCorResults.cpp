@@ -211,6 +211,12 @@ double **ReadCrossSectionTable(char *InputFileName)
             }
         }
     }
+    else
+    {
+        fprintf(stderr, "I don't seem to be able to open the cross section file which you provided\n");
+        exit(1);
+    }
+    
     inputFile.close();
     std:: cout << "Read the cross section table" << std::endl;
     return result;
@@ -245,6 +251,12 @@ double*** ReadAngCorTable(char *InputFileName)
             result[(int)(dummy0/DeltaThetaAlpha)][(int)dummy1][(int)dummy2] = dummy3;
         }
     }
+    else
+    {
+        fprintf(stderr, "I don't seem to be able to open the AngCor input file which you suggested\n");
+        exit(1);
+    }
+    
     inputFile.close();
     std::cout << "Loaded all of the AngCor values" << std::endl;
     return result;
