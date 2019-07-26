@@ -11,6 +11,8 @@
 #include <TCanvas.h>
 #include <TGraph.h>
 
+double ThetaAlphaStartAngle = 0.;
+
 int NumberThetaAlphaPoints = 40;
 int NumberPhiAlphaPoints = 360;
 int NumberThetaDecayPoints = 180;

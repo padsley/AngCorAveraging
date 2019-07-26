@@ -49,6 +49,8 @@ int main(int argc, char *argv[])
     
     //     TLorentzVector *KinematicVectors, *KinematicVectorsDecay;
     
+    
+    
     //Read in CHUCK3 differential cross sections
     double **CrossSectionTable = ReadCrossSectionTable(argv[1]);
     
@@ -115,7 +117,14 @@ int main(int argc, char *argv[])
                         ApertureX = ThetaAlphaLab * cos(PhiAlphaLab*TMath::Pi()/180.);
                         ApertureY = ThetaAlphaLab * sin(PhiAlphaLab*TMath::Pi()/180.);;
                         
+                        TLorentzVector* DecayResidualVectors = CalculateDecayResidualVectors(Masses, Ex,KinematicVectors[1],ThetaDecayCM,PhiDecayCM);
+                        
+//                         ThetaDecayLab = DecayResidualVectors[0].Theta();
+                        ThetaDecayLab = 0;
+                        
                         trout->Fill();
+                        delete [] DecayResidualVectors;
+                        
                     }
                 }
                 
@@ -203,7 +212,7 @@ double **ReadCrossSectionTable(char *InputFileName)
                     if(VerboseFlag)std::cout << "Theta = " << Theta << std::endl;
                     CrossSection = atof(str.substr(14,10).c_str());
                     if(VerboseFlag)std::cout << "CrossSection = " << CrossSection << std::endl;
-                    if(VerboseFlag)std::cout << "Index = " << (Theta/DeltaThetaAlpha) << "\t" << (int)round(Theta/DeltaThetaAlpha) << std::endl;
+                    if(VerboseFlag)std::cout << "Index = " << ((Theta-ThetaAlphaStartAngle)/DeltaThetaAlpha) << "\t" << (int)round(Theta/DeltaThetaAlpha) << std::endl;
                     result[(int)round(Theta/DeltaThetaAlpha)][0] = Theta;
                     result[(int)round(Theta/DeltaThetaAlpha)][1] = CrossSection;
                     if(VerboseFlag)std::cout << "Done cross section for theta = " << Theta << std::endl;
@@ -248,7 +257,7 @@ double*** ReadAngCorTable(char *InputFileName)
         while(inputFile >> dummy0 >> dummy1 >> dummy2 >> dummy3)
         {
             if(VerboseFlag)std::cout << dummy0 << "\t" << dummy1 << "\t" << dummy2 << "\t" << dummy3 << std::endl;
-            result[(int)(dummy0/DeltaThetaAlpha)][(int)dummy1][(int)dummy2] = dummy3;
+            result[(int)((dummy0-ThetaAlphaStartAngle)/DeltaThetaAlpha)][(int)dummy1][(int)dummy2] = dummy3;
         }
     }
     else
@@ -276,7 +285,7 @@ double CrossSectionCalculation(double **CrossSectionTable, double ThetaAlpha)
     {
         std::cout << "Not found a good cross section" << std::endl;
         std::cout << "ThetaAlpha = " << ThetaAlpha << std::endl;
-        std::cout << "CrossSection index: " << (int)(ThetaAlpha/DeltaThetaAlpha) << std::endl;
+        std::cout << "CrossSection index: " << (int)((ThetaAlpha-ThetaAlphaStartAngle)/DeltaThetaAlpha) << std::endl;
         std::cout << "CrossSectionTable value: " << CrossSectionTable[(int)(ThetaAlpha/DeltaThetaAlpha)][1] << std::endl;
     }
     return result;
@@ -451,6 +460,8 @@ TLorentzVector* CalculateDecayResidualVectors(double *Masses, double Ex, TLorent
     
     //     Lab4MomentumDecay.Boost(Recoil4Vector.BoostVector());
     //     Lab4MomentumResidual.Boost(Recoil4Vector.BoostVector());
+    Lab4MomentumDecay.Boost(Recoil4Vector.BoostVector());
+    Lab4MomentumResidual.Boost(Recoil4Vector.BoostVector());
     
     result[0] = Lab4MomentumDecay;
     result[1] = Lab4MomentumResidual;
