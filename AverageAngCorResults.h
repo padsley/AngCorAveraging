@@ -26,7 +26,7 @@ double Ex = 11.864; //MeV
 
 double **ReadCrossSectionTable(char *InputFileName);
 double CrossSectionCalculation(double **CrossSectionTable, double ThetaAlpha);
-double CalculateThetaAlpha(int Iteration){return DeltaThetaAlpha * Iteration;}
+double CalculateThetaAlpha(int Iteration){return DeltaThetaAlpha * Iteration + ThetaAlphaStartAngle;}
 TLorentzVector* CalculateEjectileRecoilVectors(double *Masses, double TBeam, double Ex, double ThetaAlphaCM, double PhiAlphaCM);
 double*** ReadAngCorTable(char *InputFileName);
 TH2F* MakeAngCorHistogram(double ***AngCorTable, double ThetaCM);
