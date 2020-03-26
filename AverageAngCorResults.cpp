@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
                         if(ThetaAlphaLab<2.)AngularCorrelationHistogram->Fill(j,AngCorTable[i][j][k]*CrossSectionValue);
                         if(ThetaAlphaLab<2.)AngularCorrelationHistogramPerAngle[i]->Fill(j,AngCorTable[i][j][k]);
                         if(ThetaAlphaLab<2.)AngularCorrelationHistogramPerAnglePerAngle[i][k]->Fill(j,AngCorTable[i][j][k]);
-                        if(ThetaAlphaLab<2.)AngularCorrelationNormalisation->Fill(j);
+                        if(ThetaAlphaLab<2.)AngularCorrelationNormalisation->Fill(j*CrossSectionValue);
                         
                         PhiAlphaLab = (double)l;
                         Weight = AngCorTable[i][j][k]*CrossSectionValue;
