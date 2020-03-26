@@ -4,8 +4,10 @@ double *ReadCrossSectionTable(char InputFileName);
 
 // bool VerboseFlag = true;
 bool VerboseFlag = false;
-
+bool SimpleKinematics = true;
 //usage AverageAngCorResults CHUCK3CrossSectionFilePath PathToAngCorOutputFile
+
+double TBeam = 200, ExInitial = 10, ExFinal = 0;
 
 int main(int argc, char *argv[])
 {
@@ -84,7 +86,7 @@ int main(int argc, char *argv[])
         ThetaAlphaCM = CalculateThetaAlpha(i);
         if(VerboseFlag)std::cout << "ThetaAlphaCM: " << ThetaAlphaCM << std::endl;
         
-        TLorentzVector *KinematicVectors = CalculateEjectileRecoilVectors(Masses, 200, Ex, ThetaAlphaCM, 0);
+        TLorentzVector *KinematicVectors = CalculateEjectileRecoilVectors(Masses, TBeam, ExInitial, ThetaAlphaCM, 0);
         ThetaAlphaLab = KinematicVectors[0].Theta()*180./TMath::Pi();
         
 //         if(ThetaAlphaLab<2.)
@@ -120,7 +122,7 @@ int main(int argc, char *argv[])
                         TLorentzVector* DecayResidualVectors = CalculateDecayResidualVectors(Masses, Ex,KinematicVectors[1],ThetaDecayCM,PhiDecayCM);
                         
 //                         ThetaDecayLab = DecayResidualVectors[0].Theta();
-                        ThetaDecayLab = 0;
+                        if(SimpleKinematics)ThetaDecayLab = DoSimpleKinematicConversion(Masses, TBeam, ExInitial, ExFinal, ThetaDecayCM, PhiDecayLab);
                         
                         trout->Fill();
                         delete [] DecayResidualVectors;
@@ -492,4 +494,51 @@ bool TestKinematics(double *Masses, double TBeam, double Ex, TLorentzVector* Kin
     }
     
     return result;
+}
+
+double DoSimpleKinematicConversion(double *Masses, double TBeam, double ExInitial, double ExFinal, double ThetaDecayCM, double PhiDecayCM)
+{
+    double RecoilMass = Masses[3] + Ex; //Convert the recoil mass to the right value including the excitation-energy dependence
+    
+    double s = pow(Masses[0],2.) + pow(Masses[1],2.) + 2 * Masses[1] * (TBeam + Masses[0]);
+    
+    TLorentzVector f4MomentumCentreOfMass(0,0,0,sqrt(s));
+    
+    double ECM0 = (s + pow(Masses[0],2.) - pow(Masses[1],2.))/(2*sqrt(s));
+    double ECM1 = (s + pow(Masses[1],2.) - pow(Masses[0],2.))/(2*sqrt(s));
+    double ECM2 = (s + pow(Masses[2],2.) - pow(RecoilMass,2.))/(2*sqrt(s));
+    double ECM3 = (s + pow(RecoilMass,2.) - pow(Masses[2],2.))/(2*sqrt(s));
+    
+    double PCM0 = sqrt(pow(ECM0,2.) - pow(Masses[0],2.));
+    double PCM1 = sqrt(pow(ECM1,2.) - pow(Masses[1],2.));
+    double PCM2 = sqrt(pow(ECM2,2.) - pow(Masses[2],2.));
+    double PCM3 = sqrt(pow(ECM3,2.) - pow(RecoilMass,2.));
+    
+    TVector3 Lab3Momentum0(0,0,sqrt(pow(TBeam,2.) + 2 * TBeam * Masses[0]));
+    TVector3 Lab3Momentum1(0,0,0);
+    
+    TLorentzVector Lab4Momentum0(Lab3Momentum0,Masses[0] + TBeam);
+    TLorentzVector Lab4Momentum1(Lab3Momentum1,Masses[1]);
+    
+    double BetaCM = (Lab4Momentum0+Lab4Momentum1).Beta();
+    //     std::cout << "BetaCM = " << BetaCM << std::endl;
+    
+    TLorentzVector CoM4Momentum0 = Lab4Momentum0;
+    CoM4Momentum0.Boost(TVector3(0,0,-BetaCM));
+    
+    TLorentzVector CoM4Momentum1 = Lab4Momentum1;
+    CoM4Momentum1.Boost(TVector3(0,0,-BetaCM));
+    
+    //Assume recoil is stationary in the centre-of-mass frame
+    double TDecayParticle = ExInitial + Masses[3] - Masses[4] - Masses[5];//kinetic energy of the decay particle
+    double pDecayParticle = sqrt(TDecayParticle * (TDecayParticle + 2*Masses[4]));
+    TVector3 DecayParticle3Momentum(pDecayParticle*sin(ThetaDecayCM*TMath::Pi()/180.)*cos(PhiDecayCM*TMath::Pi()/180.),
+                           pDecayParticle*sin(ThetaDecayCM*TMath::Pi()/180.)*sin(PhiDecayCM*TMath::Pi()/180.),
+                           pDecayParticle*cos(ThetaDecayCM*TMath::Pi()/180.));
+    
+    TLorentzVector DecayParticle4Momentum(DecayParticle3Momentum, TDecayParticle + Masses[4]);
+    
+    DecayParticle4Momentum.Boost(TVector3(0,0,BetaCM));
+    
+    return DecayParticle4Momentum.Theta()*180./TMath::Pi();
 }

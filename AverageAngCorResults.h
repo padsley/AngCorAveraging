@@ -34,3 +34,4 @@ TLorentzVector* CalculateDecayResidualVectors(double *Masses, double Ex,TLorentz
 bool TestKinematics(double *Masses, double TBeam, double Ex, TLorentzVector* KinematicVectors, TLorentzVector* KinematicVectorsDecay);
 
 TVector3 CollisionalCoMBoost(double *Masses, double TBeam);
+double DoSimpleKinematicConversion(double *Masses, double TBeam, double ExInitial, double ExFinal, double ThetaDecayCM, double PhiDecayCM);
