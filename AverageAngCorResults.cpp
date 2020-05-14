@@ -74,6 +74,7 @@ int main(int argc, char *argv[])
     trout->Branch("ThetaAlphaLab",&ThetaAlphaLab);
     trout->Branch("PhiAlphaLab",&PhiAlphaLab);//
     trout->Branch("PhiDecayLab",&PhiDecayLab);//
+    trout->Branch("ThetaDecayLab",&ThetaDecayLab);//
     trout->Branch("ThetaDecayCM",&ThetaDecayCM);//
     trout->Branch("PhiDecayCM",&PhiDecayCM);//
     trout->Branch("Weight",&Weight);//
@@ -101,14 +102,14 @@ int main(int argc, char *argv[])
             {
                 for(int k=0;k<NumberPhiDecayPoints;k++)
                 {
-                    for(int l=0;l<360;l++)//Loop over phi alpha
+//                     for(int l=0;l<360;l++)//Loop over phi alpha
                     {
                         if(ThetaAlphaLab<2.)AngularCorrelationHistogram->Fill(j,AngCorTable[i][j][k]*CrossSectionValue);
                         if(ThetaAlphaLab<2.)AngularCorrelationHistogramPerAngle[i]->Fill(j,AngCorTable[i][j][k]);
                         if(ThetaAlphaLab<2.)AngularCorrelationHistogramPerAnglePerAngle[i][k]->Fill(j,AngCorTable[i][j][k]);
                         if(ThetaAlphaLab<2.)AngularCorrelationNormalisation->Fill(j*CrossSectionValue);
                         
-                        PhiAlphaLab = (double)l;
+                        PhiAlphaLab = 0;//can do this WLOG to reduce the total number of events that we must run, I think
                         Weight = AngCorTable[i][j][k]*CrossSectionValue;
                         ThetaDecayCM = (double)j;
                         PhiDecayCM = (double)k;
@@ -498,7 +499,7 @@ bool TestKinematics(double *Masses, double TBeam, double Ex, TLorentzVector* Kin
 
 double DoSimpleKinematicConversion(double *Masses, double TBeam, double ExInitial, double ExFinal, double ThetaDecayCM, double PhiDecayCM)
 {
-    double RecoilMass = Masses[3] + Ex; //Convert the recoil mass to the right value including the excitation-energy dependence
+    double RecoilMass = Masses[3] + ExInitial; //Convert the recoil mass to the right value including the excitation-energy dependence
     
     double s = pow(Masses[0],2.) + pow(Masses[1],2.) + 2 * Masses[1] * (TBeam + Masses[0]);
     
@@ -521,7 +522,7 @@ double DoSimpleKinematicConversion(double *Masses, double TBeam, double ExInitia
     TLorentzVector Lab4Momentum1(Lab3Momentum1,Masses[1]);
     
     double BetaCM = (Lab4Momentum0+Lab4Momentum1).Beta();
-    //     std::cout << "BetaCM = " << BetaCM << std::endl;
+//     std::cout << "BetaCM = " << BetaCM << std::endl;
     
     TLorentzVector CoM4Momentum0 = Lab4Momentum0;
     CoM4Momentum0.Boost(TVector3(0,0,-BetaCM));
@@ -529,14 +530,27 @@ double DoSimpleKinematicConversion(double *Masses, double TBeam, double ExInitia
     TLorentzVector CoM4Momentum1 = Lab4Momentum1;
     CoM4Momentum1.Boost(TVector3(0,0,-BetaCM));
     
+    TLorentzVector CoM4Momentum2 = TLorentzVector(PCM2,0,0,ECM2);
+    
+    TLorentzVector CoM4Momentum3 = CoM4Momentum0 + CoM4Momentum1 - CoM4Momentum2;
+    
+    double BetaRecoil = CoM4Momentum3.Beta();
+//     std::cout << "BetaRecoil = " << BetaRecoil << std::endl;
+    
     //Assume recoil is stationary in the centre-of-mass frame
-    double TDecayParticle = ExInitial + Masses[3] - Masses[4] - Masses[5];//kinetic energy of the decay particle
+//     std::cout << "Threshold for the decay: " << Masses[3] - Masses[4] - Masses[5] << std::endl;
+    double TDecayParticle = Masses[5]/(Masses[4] + Masses[5]) * (ExInitial + (Masses[3] - Masses[4] - Masses[5]) - ExFinal);//kinetic energy of the decay particle
+//     std::cout << "TDecayParticle: " << TDecayParticle << std::endl;
+    
+    
     double pDecayParticle = sqrt(TDecayParticle * (TDecayParticle + 2*Masses[4]));
     TVector3 DecayParticle3Momentum(pDecayParticle*sin(ThetaDecayCM*TMath::Pi()/180.)*cos(PhiDecayCM*TMath::Pi()/180.),
                            pDecayParticle*sin(ThetaDecayCM*TMath::Pi()/180.)*sin(PhiDecayCM*TMath::Pi()/180.),
                            pDecayParticle*cos(ThetaDecayCM*TMath::Pi()/180.));
     
     TLorentzVector DecayParticle4Momentum(DecayParticle3Momentum, TDecayParticle + Masses[4]);
+ 
+    DecayParticle4Momentum.Boost(TVector3(0,0,-BetaRecoil));
     
     DecayParticle4Momentum.Boost(TVector3(0,0,BetaCM));
     

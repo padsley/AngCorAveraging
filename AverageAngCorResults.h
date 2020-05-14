@@ -18,11 +18,10 @@ int NumberPhiAlphaPoints = 360;
 int NumberThetaDecayPoints = 180;
 int NumberPhiDecayPoints = 180;
 int NumberOfCHUCK3Angles = 100;
-int NumberMonteCarloEvents = 100;
 
 float DeltaThetaAlpha = 0.1; //Size of the ThetaAlpha steps
 
-double Ex = 11.864; //MeV
+double Ex = 11.728; //MeV
 
 double **ReadCrossSectionTable(char *InputFileName);
 double CrossSectionCalculation(double **CrossSectionTable, double ThetaAlpha);
